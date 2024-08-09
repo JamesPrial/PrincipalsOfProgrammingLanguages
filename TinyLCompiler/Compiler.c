@@ -99,6 +99,15 @@ static int digit()
 static int var()
 {
 	/* YOUR CODE GOES HERE */
+	int reg;
+	if(token != 'a' && token != 'b' && token != 'c' && token != 'd' && token != 'e' && token != 'f'){
+		ERROR("Expected var\n");
+		exit(EXIT_FAILURE);
+	}
+	reg = next_register();
+	CodeGen(LOAD, reg, token, EMPTY_FIELD);
+	next_token();
+	return reg;
 }
 
 static int expr()
@@ -107,7 +116,12 @@ static int expr()
 	switch (token) {
 	case '+':
 	/* YOUR CODE GOES HERE */
-    	return arith_expr();
+	case '-':
+	case '*':
+    		return arith_expr();
+	case '&':
+	case '|':
+		return logical_expr();
     /* YOUR CODE GOES HERE */
 	case '0':
 	case '1':
@@ -120,6 +134,13 @@ static int expr()
 	case '8':
 	case '9':
 		return digit();
+	case 'a':
+	case 'b':
+	case 'c':
+	case 'd':
+	case 'e':
+	case 'f':
+		return var();
 	default:
 		ERROR("Symbol %c unknown\n", token);
 		exit(EXIT_FAILURE);
@@ -138,47 +159,140 @@ static int arith_expr()
 		CodeGen(ADD, reg, left_reg, right_reg);
 		return reg;
 		/* YOUR CODE GOES HERE */
+	case '-':
+		next_token();
+		left_reg = expr();
+		right_reg = expr();
+		reg = next_register();
+		CodeGen(SUB, reg, left_reg, right_reg);
+		return reg;
+	case '*':
+		next_token();
+		left_reg = expr();
+		right_reg = expr();
+		reg = next_register();
+		CodeGen(MUL, reg, left_reg, right_reg);
+		return reg;
+	default:
+		ERROR("Something went wrong!");
+		exit(EXIT_FAILURE);
 	}
 }
 
 static int logical_expr()
 {
 	/* YOUR CODE GOES HERE */
+	int reg, left_reg, right_reg;
+	switch(token) {
+		case '&':
+			next_token();
+			left_reg = expr();
+			right_reg = expr();
+			reg = next_register();
+			CodeGen(AND, reg, left_reg, right_reg);
+			return reg;
+		case '|':
+			next_token();
+			left_reg = expr();
+			right_reg = expr();
+			reg = next_register();
+			CodeGen(OR, reg, left_reg, right_reg);
+			return reg;
+		default:
+			ERROR("Something went wrong!");
+			exit(EXIT_FAILURE);
+	}
 }
 
 static void assign()
 {
 	/* YOUR CODE GOES HERE */
+	int exprReg;
+	char varAssigned;
+	varAssigned = token;
+	next_token();
+	if(token != '='){
+		ERROR("Something went wrong!");
+		exit(EXIT_FAILURE);
+	}
+	next_token();
+	exprReg = expr();
+	CodeGen(STORE, varAssigned, exprReg, EMPTY_FIELD);
+	
 }
 
 static void read()
 {
 	/* YOUR CODE GOES HERE */
+	if(token != '%'){
+		ERROR("Something went wrong!");
+		exit(EXIT_FAILURE);
+	}
+	next_token();
+	CodeGen(READ, token, EMPTY_FIELD, EMPTY_FIELD);
+	next_token();
 }
 
 static void print()
 {
 	/* YOUR CODE GOES HERE */
+	if(token != '$'){
+		ERROR("Something went wrong!");
+		exit(EXIT_FAILURE);
+	}
+	next_token();
+	CodeGen(WRITE, token, EMPTY_FIELD, EMPTY_FIELD);
+	next_token();
 }
 
 static void stmt()
 {
 	/* YOUR CODE GOES HERE */
+	switch(token){
+	case 'a':
+	case 'b':
+	case 'c':
+	case 'd':
+	case 'e':
+	case 'f':
+		assign();
+		break;
+	case '%':
+		read();
+		break;
+	case '$':
+		print();
+		break;
+	default:
+		ERROR("Something went wrong!");
+		exit(EXIT_FAILURE);
+	}
 }
 
 static void morestmts()
 {
 	/* YOUR CODE GOES HERE */
+	if(token != ';'){
+		return;
+	}
+	next_token();
+	stmtlist();
 }
 
 static void stmtlist()
 {
 	/* YOUR CODE GOES HERE */
+	stmt();
+	morestmts();
 }
 
 static void program()
 {
 	/* YOUR CODE GOES HERE */
+	if(token == '!'){
+		return;
+	}
+	stmtlist();
 }
 
 /*************************************************************************/
